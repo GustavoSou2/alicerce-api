@@ -1,0 +1,672 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model action_plan {
+  id                                   Int                                    @id @default(autoincrement())
+  project_id                           Int?                                   @unique
+  name                                 String                                 @db.VarChar(255)
+  description                          String?                                @db.Text
+  status_id                            Int?
+  company_id                           Int?                                   @db.UnsignedInt
+  created_at                           DateTime?                              @default(now()) @db.DateTime(0)
+  updated_at                           DateTime?                              @default(now()) @db.DateTime(0)
+  responsible_user_id                  Int?
+  completed_at                         DateTime?                              @db.DateTime(0)
+  action_type                          String?                                @db.VarChar(100)
+  priority                             action_plan_priority?                  @default(medium)
+  notes                                String?                                @db.Text
+  projects                             projects?                              @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "action_plan_ibfk_1")
+  companies                            companies?                             @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_company_id")
+  users                                users?                                 @relation(fields: [responsible_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_responsible_user")
+  action_plan_status                   action_plan_status?                    @relation(fields: [status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_status_id")
+  action_plan_status_behavior_progress action_plan_status_behavior_progress[]
+  action_plan_target                   action_plan_target[]
+  actions                              actions?
+  approval_flows                       approval_flows[]
+  custom_status                        custom_status?
+
+  @@index([company_id], map: "fk_company_id")
+  @@index([responsible_user_id], map: "fk_responsible_user")
+  @@index([status_id], map: "fk_status_id")
+}
+
+model action_plan_target {
+  id             Int                            @id @default(autoincrement())
+  action_plan_id Int
+  target_id      Int
+  target_type    action_plan_target_target_type
+  action_plan    action_plan                    @relation(fields: [action_plan_id], references: [id], onDelete: Cascade, map: "fk_action_plan_target_action_plan")
+
+  @@index([action_plan_id], map: "action_plan_id")
+}
+
+model actions {
+  id                Int              @id @default(autoincrement())
+  action_plan_id    Int?
+  name              String           @db.VarChar(255)
+  description       String?          @db.Text
+  current_status_id Int?
+  action_plan       action_plan      @relation(fields: [id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "actions_ibfk_1")
+  custom_status     custom_status?   @relation(fields: [current_status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "actions_ibfk_2")
+  approval_flows    approval_flows[]
+
+  @@index([current_status_id], map: "current_status_id")
+}
+
+model approval_flows {
+  id                                                            Int            @id @default(autoincrement())
+  action_plan_id                                                Int?
+  action_id                                                     Int?
+  current_status_id                                             Int?
+  next_status_id                                                Int?
+  approved_by                                                   Int?
+  approved_date                                                 DateTime?      @default(now()) @db.DateTime(0)
+  action_plan                                                   action_plan?   @relation(fields: [action_plan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_1")
+  actions                                                       actions?       @relation(fields: [action_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_2")
+  custom_status_approval_flows_current_status_idTocustom_status custom_status? @relation("approval_flows_current_status_idTocustom_status", fields: [current_status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_3")
+  custom_status_approval_flows_next_status_idTocustom_status    custom_status? @relation("approval_flows_next_status_idTocustom_status", fields: [next_status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_4")
+  users                                                         users?         @relation(fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_5")
+
+  @@index([action_id], map: "action_id")
+  @@index([action_plan_id], map: "action_plan_id")
+  @@index([approved_by], map: "approved_by")
+  @@index([current_status_id], map: "current_status_id")
+  @@index([next_status_id], map: "next_status_id")
+}
+
+model audit_logs {
+  id             Int                    @id @default(autoincrement())
+  entity_name    String                 @db.VarChar(255)
+  entity_id      Int
+  action_type    audit_logs_action_type
+  performed_by   Int?
+  performed_date DateTime?              @default(now()) @db.DateTime(0)
+  users          users?                 @relation(fields: [performed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "audit_logs_ibfk_1")
+  items          items                  @relation(fields: [entity_id], references: [id], onDelete: Cascade, map: "fk_audit_logs_entity_id")
+
+  @@index([performed_by], map: "performed_by")
+  @@index([entity_id], map: "fk_audit_logs_entity_id")
+}
+
+model budget_items {
+  id          Int        @id @default(autoincrement())
+  budget_id   Int?
+  material_id Int?
+  quantity    Int
+  subtotal    Decimal    @db.Decimal(10, 2)
+  budgets     budgets?   @relation(fields: [budget_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "budget_items_ibfk_1")
+  materials   materials? @relation(fields: [material_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "budget_items_ibfk_2")
+
+  @@index([budget_id], map: "budget_id")
+  @@index([material_id], map: "material_id")
+}
+
+model budgets {
+  id           Int            @id @default(autoincrement())
+  project_id   Int?
+  total_amount Decimal?       @db.Decimal(10, 2)
+  budget_items budget_items[]
+  projects     projects?      @relation(fields: [project_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "budgets_ibfk_1")
+
+  @@index([project_id], map: "project_id")
+}
+
+model custom_status {
+  id                                                             Int              @id @default(autoincrement())
+  action_plan_id                                                 Int?
+  name                                                           String           @db.VarChar(255)
+  description                                                    String?          @db.Text
+  sequence_order                                                 Int
+  actions                                                        actions[]
+  approval_flows_approval_flows_current_status_idTocustom_status approval_flows[] @relation("approval_flows_current_status_idTocustom_status")
+  approval_flows_approval_flows_next_status_idTocustom_status    approval_flows[] @relation("approval_flows_next_status_idTocustom_status")
+  action_plan                                                    action_plan      @relation(fields: [id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "custom_status_ibfk_1")
+}
+
+model global_status {
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(255)
+  description String? @db.Text
+}
+
+model materials {
+  id           Int            @id @default(autoincrement())
+  name         String         @db.VarChar(255)
+  description  String?        @db.Text
+  unit_price   Decimal        @db.Decimal(10, 2)
+  budget_items budget_items[]
+}
+
+model modules {
+  id            Int             @id @default(autoincrement())
+  name          String          @unique(map: "name") @db.VarChar(50)
+  description   String          @db.VarChar(255)
+  month_value   Decimal         @db.Decimal(10, 2)
+  permissions   permissions[]
+  subscriptions subscriptions[]
+}
+
+model permissions {
+  id         Int                    @id @default(autoincrement())
+  id_user    Int
+  id_module  Int
+  permission permissions_permission
+  users      users                  @relation(fields: [id_user], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "permissions_ibfk_1")
+  modules    modules                @relation(fields: [id_module], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "permissions_ibfk_2")
+
+  @@index([id_module], map: "id_module")
+  @@index([id_user], map: "id_user")
+}
+
+model projects {
+  id             Int             @id @default(autoincrement())
+  name           String          @db.VarChar(255)
+  client_id      Int
+  description    String?         @db.Text
+  init_date      DateTime?       @db.Date
+  end_date       DateTime?       @db.Date
+  status         Int
+  created_by     Int?
+  budget         Decimal?        @db.Decimal(15, 2)
+  city           String?         @db.VarChar(100)
+  company_id     Int             @db.UnsignedInt
+  country        String?         @db.VarChar(50)
+  created_at     DateTime?       @default(now()) @db.Timestamp(0)
+  deleted_at     DateTime?       @db.Timestamp(0)
+  location       String?         @db.VarChar(255)
+  neighborhood   String?         @db.VarChar(100)
+  number         String?         @db.VarChar(10)
+  stage          String          @db.VarChar(255)
+  state          String?         @db.VarChar(50)
+  street         String?         @db.VarChar(255)
+  type           String          @db.VarChar(255)
+  updated_at     DateTime?       @default(now()) @db.Timestamp(0)
+  zip_code       String?         @db.VarChar(20)
+  action_plan    action_plan?
+  activity_logs  activity_logs[]
+  budgets        budgets[]
+  items          items[]
+  clients        clients         @relation(fields: [client_id], references: [id], onDelete: Cascade, map: "projects_ibfk_3")
+  companies      companies       @relation(fields: [company_id], references: [id], onDelete: Cascade, map: "projects_ibfk_2")
+  project_status project_status  @relation(fields: [status], references: [id], map: "fk_projects_status")
+  users          users?          @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "projects_ibfk_1")
+
+  @@index([created_by], map: "created_by")
+  @@index([company_id], map: "fk_projects_company")
+  @@index([client_id], map: "fk_projects_clients")
+  @@index([status], map: "fk_projects_status")
+}
+
+model subscriptions {
+  id                Int                     @id @default(autoincrement())
+  id_user           Int
+  id_module         Int
+  start_date        DateTime?               @default(now()) @db.DateTime(0)
+  end_date          DateTime?               @db.DateTime(0)
+  plan_type         subscriptions_plan_type
+  status            subscriptions_status
+  payment_reference String?                 @db.VarChar(100)
+  users             users                   @relation(fields: [id_user], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "subscriptions_ibfk_1")
+  modules           modules                 @relation(fields: [id_module], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "subscriptions_ibfk_2")
+
+  @@index([id_module], map: "id_module")
+  @@index([id_user], map: "id_user")
+}
+
+model users {
+  id                                                Int                 @id @default(autoincrement())
+  username                                          String              @db.VarChar(100)
+  email                                             String              @unique(map: "email") @db.VarChar(255)
+  password                                          String              @db.VarChar(255)
+  role_id                                           Int?                @db.UnsignedInt
+  created_at                                        DateTime?           @default(now()) @db.DateTime(0)
+  company_id                                        Int?                @db.UnsignedInt
+  action_plan                                       action_plan[]
+  activity_logs                                     activity_logs[]
+  approval_flow_approval_flow_approved_byTousers    approval_flow[]     @relation("approval_flow_approved_byTousers")
+  approval_flow                                     approval_flow[]
+  approval_flow_approval_flow_rejected_byTousers    approval_flow[]     @relation("approval_flow_rejected_byTousers")
+  approval_flow_approval_flow_responsible_idTousers approval_flow[]     @relation("approval_flow_responsible_idTousers")
+  approval_flows                                    approval_flows[]
+  audit_logs                                        audit_logs[]
+  comment_reactions                                 comment_reactions[]
+  comments                                          comments[]
+  invites                                           invites[]
+  items                                             items[]
+  permissions                                       permissions[]
+  projects                                          projects[]
+  roles_roles_user_idTousers                        roles[]             @relation("roles_user_idTousers")
+  subitems                                          subitems[]
+  subscriptions                                     subscriptions[]
+  companies                                         companies?          @relation(fields: [company_id], references: [id], onUpdate: NoAction, map: "fk_users_company")
+  role                                              roles?              @relation(fields: [role_id], references: [id], onUpdate: NoAction, map: "fk_users_role")
+
+  @@index([company_id], map: "fk_users_company")
+  @@index([role_id], map: "fk_users_role")
+}
+
+model clients {
+  id           Int        @id @default(autoincrement())
+  company_id   Int?       @db.UnsignedInt
+  name         String     @db.VarChar(255)
+  email        String     @unique(map: "email") @db.VarChar(255)
+  phone        String?    @db.VarChar(20)
+  street       String?    @db.VarChar(255)
+  number       String?    @db.VarChar(10)
+  complement   String?    @db.VarChar(255)
+  neighborhood String?    @db.VarChar(100)
+  city         String?    @db.VarChar(100)
+  state        String?    @db.VarChar(50)
+  country      String?    @default("Brasil") @db.VarChar(50)
+  postal_code  String?    @db.VarChar(20)
+  created_at   DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at   DateTime?  @default(now()) @db.Timestamp(0)
+  companies    companies? @relation(fields: [company_id], references: [id], map: "fk_clients_company")
+  projects     projects[]
+
+  @@index([company_id], map: "company_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model companies {
+  id                 Int                  @id @default(autoincrement()) @db.UnsignedInt
+  name               String               @db.VarChar(255)
+  cnpj               String?              @unique(map: "cnpj") @db.Char(14)
+  cpf                String?              @unique(map: "cpf") @db.Char(11)
+  email              String               @unique(map: "email") @db.VarChar(255)
+  phone              String?              @db.VarChar(20)
+  created_at         DateTime?            @default(now()) @db.Timestamp(0)
+  updated_at         DateTime?            @default(now()) @db.Timestamp(0)
+  action_plan        action_plan[]
+  action_plan_status action_plan_status[]
+  approval_flow      approval_flow[]
+  clients            clients[]
+  invites            invites[]
+  project_status     project_status[]
+  projects           projects[]
+  roles              roles[]
+  users              users[]
+}
+
+model roles {
+  id                         Int        @id @default(autoincrement()) @db.UnsignedInt
+  company_id                 Int?       @db.UnsignedInt
+  name                       String     @db.VarChar(255)
+  role_code                  String?    @db.VarChar(50)
+  created_at                 DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at                 DateTime?  @default(now()) @db.Timestamp(0)
+  user_id                    Int?
+  companies                  companies? @relation(fields: [company_id], references: [id], map: "fk_roles_company")
+  users_roles_user_idTousers users?     @relation("roles_user_idTousers", fields: [user_id], references: [id], map: "fk_roles_user")
+  users                      users[]
+
+  @@unique([company_id, name], map: "unique_role_per_company")
+  @@index([user_id], map: "fk_user")
+}
+
+model invites {
+  id         Int       @id @default(autoincrement()) @db.UnsignedInt
+  company_id Int       @db.UnsignedInt
+  inviter_id Int
+  email      String    @db.VarChar(255)
+  role       String    @db.VarChar(100)
+  status     String    @default("pending") @db.VarChar(20)
+  token      String    @db.VarChar(255)
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  updated_at DateTime? @default(now()) @db.Timestamp(0)
+  companies  companies @relation(fields: [company_id], references: [id], onDelete: Cascade, map: "fk_invites_company")
+  users      users     @relation(fields: [inviter_id], references: [id], onDelete: Cascade, map: "fk_invites_inviter")
+
+  @@unique([email, company_id], map: "email")
+  @@index([company_id], map: "fk_invites_company")
+  @@index([inviter_id], map: "fk_invites_inviter")
+}
+
+model action_plan_status {
+  id                          Int                           @id @default(autoincrement())
+  company_id                  Int                           @db.UnsignedInt
+  name                        String                        @db.VarChar(50)
+  name_code                   String                        @db.VarChar(150)
+  description                 String?                       @db.Text
+  created_at                  DateTime?                     @default(now()) @db.Timestamp(0)
+  rank                        Int?                          @default(0)
+  color                       String?                       @db.VarChar(100)
+  action_plan                 action_plan[]
+  companies                   companies                     @relation(fields: [company_id], references: [id], onDelete: Cascade, map: "fk_action_plan_status_company")
+  action_plan_status_behavior action_plan_status_behavior[]
+
+  @@index([company_id], map: "company_id")
+}
+
+model project_status {
+  id          Int        @id @default(autoincrement())
+  company_id  Int        @db.UnsignedInt
+  name        String     @db.VarChar(150)
+  name_code   String     @db.VarChar(150)
+  description String?    @db.Text
+  created_at  DateTime?  @default(now()) @db.Timestamp(0)
+  rank        Int?       @default(0)
+  color       String?    @db.VarChar(100)
+  companies   companies  @relation(fields: [company_id], references: [id], onDelete: Cascade, map: "fk_project_status_company")
+  projects    projects[]
+
+  @@index([company_id], map: "company_id")
+}
+
+model approval_flow {
+  id                                        Int                             @id @default(autoincrement())
+  entity_type                               approval_flow_entity_type
+  entity_id                                 Int
+  parent_entity_id                          Int?
+  current_status_id                         Int
+  next_status_id                            Int
+  approval_type                             approval_flow_approval_type
+  responsible_id                            Int?
+  responsible_group_id                      Int?
+  created_by                                Int
+  approved_by                               Int?
+  approved_date                             DateTime?                       @db.DateTime(0)
+  rejected_by                               Int?
+  rejection_reason                          String?                         @db.Text
+  deadline                                  DateTime?                       @db.DateTime(0)
+  approval_order                            Int?                            @default(1)
+  approval_priority                         approval_flow_approval_priority @default(medium)
+  auto_approval                             Boolean?                        @default(false)
+  last_reminder_sent_at                     DateTime?                       @db.DateTime(0)
+  created_at                                DateTime?                       @default(now()) @db.Timestamp(0)
+  company_id                                Int?                            @db.UnsignedInt
+  users_approval_flow_approved_byTousers    users?                          @relation("approval_flow_approved_byTousers", fields: [approved_by], references: [id], onDelete: Cascade, map: "fk_approval_flow_approved_by")
+  companies                                 companies?                      @relation(fields: [company_id], references: [id], onDelete: Cascade, map: "fk_approval_flow_company")
+  users                                     users                           @relation(fields: [created_by], references: [id], onDelete: Cascade, map: "fk_approval_flow_created_by")
+  users_approval_flow_rejected_byTousers    users?                          @relation("approval_flow_rejected_byTousers", fields: [rejected_by], references: [id], onDelete: Cascade, map: "fk_approval_flow_rejected_by")
+  users_approval_flow_responsible_idTousers users?                          @relation("approval_flow_responsible_idTousers", fields: [responsible_id], references: [id], onDelete: Cascade, map: "fk_approval_flow_responsible_id")
+
+  @@index([approved_by], map: "fk_approved_by")
+  @@index([company_id], map: "fk_company")
+  @@index([created_by], map: "fk_created_by")
+  @@index([rejected_by], map: "fk_rejected_by")
+  @@index([responsible_id], map: "fk_responsible")
+}
+
+model activity_logs {
+  id          Int                       @id @default(autoincrement())
+  project_id  Int
+  user_id     Int
+  item_id     Int?
+  subitem_id  Int?
+  action_type activity_logs_action_type
+  description String                    @db.Text
+  created_at  DateTime?                 @default(now()) @db.Timestamp(0)
+  items       items?                    @relation(fields: [item_id], references: [id], onDelete: Cascade, map: "fk_activity_logs_item")
+  projects    projects                  @relation(fields: [project_id], references: [id], onDelete: Cascade, map: "fk_activity_logs_project")
+  subitems    subitems?                 @relation(fields: [subitem_id], references: [id], onDelete: Cascade, map: "fk_activity_logs_subitem")
+  users       users                     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "fk_activity_logs_user")
+
+  @@index([item_id], map: "item_id")
+  @@index([project_id], map: "project_id")
+  @@index([subitem_id], map: "subitem_id")
+  @@index([user_id], map: "user_id")
+}
+
+model dependencies {
+  item_id                              Int
+  depends_on                           Int
+  items_dependencies_depends_onToitems items @relation("dependencies_depends_onToitems", fields: [depends_on], references: [id], onDelete: Cascade, map: "fk_dependency_depends_on")
+  items_dependencies_item_idToitems    items @relation("dependencies_item_idToitems", fields: [item_id], references: [id], onDelete: Cascade, map: "fk_dependency_item")
+
+  @@id([item_id, depends_on])
+  @@index([depends_on], map: "depends_on")
+}
+
+model items {
+  id                                          Int             @id @default(autoincrement())
+  name                                        String          @db.VarChar(255)
+  description                                 String          @db.Text
+  category                                    items_category
+  status                                      items_status?   @default(pending)
+  budget                                      Decimal?        @default(0.00) @db.Decimal(15, 2)
+  actual_cost                                 Decimal?        @default(0.00) @db.Decimal(15, 2)
+  start_date                                  DateTime?       @db.Date
+  end_date                                    DateTime?       @db.Date
+  responsible_user_id                         Int?
+  project_id                                  Int
+  created_at                                  DateTime?       @default(now()) @db.Timestamp(0)
+  updated_at                                  DateTime?       @default(now()) @db.Timestamp(0)
+  activity_logs                               activity_logs[]
+  audit_logs                                  audit_logs[]
+  dependencies_dependencies_depends_onToitems dependencies[]  @relation("dependencies_depends_onToitems")
+  dependencies_dependencies_item_idToitems    dependencies[]  @relation("dependencies_item_idToitems")
+  companies                                   projects        @relation(fields: [project_id], references: [id], onDelete: Cascade, map: "items_ibfk_3")
+  users                                       users?          @relation(fields: [responsible_user_id], references: [id], map: "items_ibfk_2")
+  subitems                                    subitems[]
+
+  @@index([project_id], map: "project_id")
+  @@index([responsible_user_id], map: "responsible_user_id")
+}
+
+model subitems {
+  id                  Int               @id @default(autoincrement())
+  name                String            @db.VarChar(255)
+  description         String            @db.Text
+  category            subitems_category
+  status              subitems_status?  @default(pending)
+  quantity            Decimal?          @default(0.00) @db.Decimal(10, 2)
+  unit                String?           @default("unit") @db.VarChar(50)
+  estimated_cost      Decimal?          @default(0.00) @db.Decimal(15, 2)
+  actual_cost         Decimal?          @default(0.00) @db.Decimal(15, 2)
+  start_date          DateTime?         @db.Date
+  end_date            DateTime?         @db.Date
+  responsible_user_id Int?
+  item_id             Int
+  created_at          DateTime?         @default(now()) @db.Timestamp(0)
+  updated_at          DateTime?         @default(now()) @db.Timestamp(0)
+  activity_logs       activity_logs[]
+  items               items             @relation(fields: [item_id], references: [id], onDelete: Cascade, map: "fk_subitems_item_id")
+  users               users?            @relation(fields: [responsible_user_id], references: [id], map: "subitems_ibfk_1")
+
+  @@index([item_id], map: "item_id")
+  @@index([responsible_user_id], map: "responsible_user_id")
+}
+
+model comment_reactions {
+  id         Int                    @id @default(autoincrement())
+  comment_id Int
+  user_id    Int
+  type       comment_reactions_type
+  created_at DateTime?              @default(now()) @db.DateTime(0)
+  comments   comments               @relation(fields: [comment_id], references: [id], onDelete: Cascade, map: "fk_reactions_comment")
+  users      users                  @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "fk_reactions_user")
+
+  @@unique([comment_id, user_id, type], map: "unique_reaction")
+  @@index([user_id], map: "fk_reactions_user")
+}
+
+model comments {
+  id                Int                  @id @default(autoincrement())
+  parent_id         Int?
+  user_id           Int
+  target_type       comments_target_type
+  content           String               @db.Text
+  created_at        DateTime?            @default(now()) @db.DateTime(0)
+  updated_at        DateTime?            @default(now()) @db.DateTime(0)
+  comment_reactions comment_reactions[]
+  comments          comments?            @relation("commentsTocomments", fields: [parent_id], references: [id], onDelete: Cascade, map: "fk_comments_parent")
+  other_comments    comments[]           @relation("commentsTocomments")
+  users             users                @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "fk_comments_user")
+
+  @@index([user_id], map: "fk_comments_user")
+  @@index([parent_id], map: "parent_id")
+}
+
+model action_plan_status_behavior {
+  id                                   Int                                    @id @default(autoincrement())
+  status_id                            Int
+  type                                 action_plan_status_behavior_type
+  name                                 String                                 @db.VarChar(100)
+  description                          String?                                @db.Text
+  config                               Json?
+  created_at                           DateTime?                              @default(now()) @db.DateTime(0)
+  action_plan_status                   action_plan_status                     @relation(fields: [status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "action_plan_status_behavior_ibfk_1")
+  action_plan_status_behavior_progress action_plan_status_behavior_progress[]
+
+  @@index([status_id], map: "status_id")
+}
+
+model action_plan_status_behavior_progress {
+  id                          Int                                          @id @default(autoincrement())
+  action_plan_id              Int
+  behavior_id                 Int
+  completed_at                DateTime?                                    @db.DateTime(0)
+  status                      action_plan_status_behavior_progress_status? @default(pending)
+  action_plan                 action_plan                                  @relation(fields: [action_plan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "action_plan_status_behavior_progress_ibfk_1")
+  action_plan_status_behavior action_plan_status_behavior                  @relation(fields: [behavior_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "action_plan_status_behavior_progress_ibfk_2")
+
+  @@index([action_plan_id], map: "action_plan_id")
+  @@index([behavior_id], map: "behavior_id")
+}
+
+enum audit_logs_action_type {
+  INSERT
+  UPDATE
+  DELETE
+}
+
+enum permissions_permission {
+  admin
+  user
+  visualizer
+}
+
+enum subscriptions_plan_type {
+  monthly
+  yearly
+}
+
+enum subscriptions_status {
+  active
+  inactive
+  pending
+  expired
+}
+
+enum approval_flow_entity_type {
+  project
+  budget
+  action_plan
+  action_item
+  sub_action_item
+}
+
+enum approval_flow_approval_type {
+  individual
+  group
+}
+
+enum approval_flow_approval_priority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum items_category {
+  materials
+  labor
+  equipment
+  other
+}
+
+enum subitems_category {
+  materials
+  labor
+  equipment
+  other
+}
+
+enum subitems_status {
+  pending
+  in_progress
+  completed
+}
+
+enum activity_logs_action_type {
+  create
+  update
+  approve
+  reject
+  delete
+  dependency_unlocked
+}
+
+enum items_status {
+  blocked
+  unlocked
+  in_progress
+  completed
+  pending
+  archived
+  cancel
+}
+
+enum action_plan_target_target_type {
+  item
+  subitem
+}
+
+enum comment_reactions_type {
+  like
+  dislike
+  save
+}
+
+enum comments_target_type {
+  project
+  item
+  subitem
+}
+
+enum action_plan_priority {
+  low
+  medium
+  high
+}
+
+enum action_plan_status_behavior_progress_status {
+  pending
+  in_progress
+  done
+}
+
+enum action_plan_status_behavior_type {
+  validation_document
+  validation_nba
+  validation_budget
+  validation_metric
+  validation_quality
+  validation_inspection
+  validation_media
+  validation_completion
+  checklist_start
+  checklist_end
+  checklist_material
+  checklist_safety
+  checklist_team
+  todo_schedule_meeting
+  todo_request_approval
+  condition_previous_done
+  condition_all_approved
+  condition_docs_uploaded
+  condition_kpi_met
+  todo_request_materials
+  todo_notify_client
+  ai_forecast_budget
+  ai_validate_invoice
+  ai_pattern_recognition
+  ai_schedule_risk
+}
