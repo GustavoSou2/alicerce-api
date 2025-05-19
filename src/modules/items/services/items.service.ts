@@ -1,17 +1,27 @@
 import { Injectable } from "@nestjs/common";
 import { items } from "@prisma/client";
 import { IaService } from "src/modules/ia/services/ia.service";
+import { ProjectsService } from "src/modules/projects/services/projects.service";
 import { PrismaService } from "src/prisma/prisma.service";
 
 @Injectable()
 export class ItemsService {
   constructor(
     private prisma: PrismaService,
+    private projectService: ProjectsService,
     private iaService: IaService,
   ) {}
 
   async create(data: items) {
-    return this.prisma.items.create({ data });
+    const project_id = data.project_id;
+
+    const project = await this.projectService.findOne(project_id);
+
+    if (project?.items.length == 0) {
+      await this.projectService.nextStatus(project_id);
+    }
+
+    return await this.prisma.items.create({ data });
   }
 
   async findAll(project_id: number) {
@@ -19,7 +29,7 @@ export class ItemsService {
       where: { project_id: project_id },
       include: {
         users: true,
-        subitems: true, 
+        subitems: true,
       },
     });
 

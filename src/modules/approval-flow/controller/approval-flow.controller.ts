@@ -26,6 +26,19 @@ export class ApprovalFlowController {
     });
   }
 
+  @Post(":approval_flow_id/approve")
+  async approve(
+    @Param("approval_flow_id") approval_flow_id: string,
+    @Body() data: any,
+    @Req() req: Request,
+  ) {
+    const user = req.user as users;
+    return this.approvalFlowService.approveFlow(+approval_flow_id, {
+      approved_by: user.id,
+      ...data,
+    });
+  }
+
   @Get()
   findAll(@Req() req: Request) {
     const user = req.user as users;

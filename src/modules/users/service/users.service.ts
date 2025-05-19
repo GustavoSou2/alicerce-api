@@ -7,7 +7,7 @@ import { STATUS_CODES } from "http";
 import { encryptData } from "src/helpers/functions/cripto.function";
 import { UserRepository } from "src/modules/users/repositories/users.repository";
 import { AuthService } from "src/modules/auth/service/auth.service";
-import { MailService } from "src/modules/mail/mail.service";
+import { MailService } from "src/modules/mail/service/mail.service";
 @Injectable()
 export class UsersService {
   constructor(

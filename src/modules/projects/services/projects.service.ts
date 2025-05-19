@@ -40,6 +40,31 @@ export class ProjectsService {
     return this.prisma.projects.update({ where: { id }, data });
   }
 
+  async nextStatus(project_id: number) {
+    const project = await this.prisma.projects.findUnique({
+      where: { id: project_id },
+      include: { project_status: true },
+    });
+
+    if (!project) {
+      throw new Error("Project not found");
+    }
+
+    const currentStatus = project.project_status;
+    const nextStatus = await this.prisma.project_status.findFirst({
+      where: { id: currentStatus.id + 1 },
+    });
+
+    if (!nextStatus) {
+      throw new Error("No next status found");
+    }
+
+    return this.prisma.projects.update({
+      where: { id: project_id },
+      data: { status: nextStatus.id },
+    });
+  }
+
   async patch(id: number, data: projects) {
     return this.prisma.projects.update({
       where: { id },

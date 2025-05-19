@@ -10,7 +10,7 @@ import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "src/prisma/prisma.service";
 import * as bcrypt from "bcrypt";
 import { AuthService } from "src/modules/auth/service/auth.service";
-import { MailService } from "src/modules/mail/mail.service";
+import { MailService } from "src/modules/mail/service/mail.service";
 import { Public } from "src/modules/auth/decorators/public.decorator";
 import { action_plan_status_behavior_type } from "@prisma/client";
 

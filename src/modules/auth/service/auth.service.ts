@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { users } from "@prisma/client";
 import * as bcrypt from "bcrypt";
-import { MailService } from "src/modules/mail/mail.service";
+import { MailService } from "src/modules/mail/service/mail.service";
 import { PrismaService } from "src/prisma/prisma.service";
 
 @Injectable()
@@ -56,7 +56,6 @@ export class AuthService {
     return { message: "Usuário criado com sucesso!", user };
   }
 
-
   async generateRegistrationToken(userData: {
     username: string;
     email: string;
@@ -77,6 +76,4 @@ export class AuthService {
       expiresIn: "7d",
     });
   }
-
-  
 }

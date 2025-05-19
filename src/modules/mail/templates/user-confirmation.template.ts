@@ -1,0 +1,27 @@
+export const user_confirmation_template = (
+  payload: any,
+) => `<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff; font-family: 'Poppins'">
+      <tr>
+        <td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" style="max-width:100%; margin:20px; border:1px solid #ddd;">
+            <tr>
+              <td style="background-color:#546de5; padding:30px; text-align:center; color:#ffffff;">
+                <h2 style="margin:0;">Bem-vindo à SuaEmpresa!</h2>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:30px; color:#333333; text-align:center;">
+                <p style="font-size:16px;">Para ativar sua conta, clique no botão abaixo:</p>
+                <a href="${payload.confirmation_link}" style="display:inline-block; margin:20px auto; padding:12px 24px; background-color:#546de5; color:#ffffff; text-decoration:none; border-radius:5px; font-weight:bold;">Confirmar Conta</a>
+                <p style="font-size:14px; color:#888888; margin-top:20px;">Se você não criou esta conta, pode ignorar este e-mail.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px; text-align:center; font-size:12px; color:#999999;">
+                © 2025 Alicerce. Todos os direitos reservados.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>`;

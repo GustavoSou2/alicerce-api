@@ -38,11 +38,13 @@ model action_plan {
 }
 
 model action_plan_target {
-  id             Int                            @id @default(autoincrement())
-  action_plan_id Int
-  target_id      Int
-  target_type    action_plan_target_target_type
-  action_plan    action_plan                    @relation(fields: [action_plan_id], references: [id], onDelete: Cascade, map: "fk_action_plan_target_action_plan")
+  id                   Int                            @id @default(autoincrement())
+  action_plan_id       Int
+  target_id            Int
+  target_type          action_plan_target_target_type
+  action_plan_document action_plan_document[]
+  action_plan          action_plan                    @relation(fields: [action_plan_id], references: [id], onDelete: Cascade, map: "fk_action_plan_target_action_plan")
+  execution_reports    execution_reports[]
 
   @@index([action_plan_id], map: "action_plan_id")
 }
@@ -61,18 +63,18 @@ model actions {
 }
 
 model approval_flows {
-  id                                                            Int            @id @default(autoincrement())
-  action_plan_id                                                Int?
-  action_id                                                     Int?
-  current_status_id                                             Int?
-  next_status_id                                                Int?
-  approved_by                                                   Int?
-  approved_date                                                 DateTime?      @default(now()) @db.DateTime(0)
-  action_plan                                                   action_plan?   @relation(fields: [action_plan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_1")
-  actions                                                       actions?       @relation(fields: [action_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_2")
-  custom_status_approval_flows_current_status_idTocustom_status custom_status? @relation("approval_flows_current_status_idTocustom_status", fields: [current_status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_3")
-  custom_status_approval_flows_next_status_idTocustom_status    custom_status? @relation("approval_flows_next_status_idTocustom_status", fields: [next_status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_4")
-  users                                                         users?         @relation(fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_5")
+  id                Int            @id @default(autoincrement())
+  action_plan_id    Int?
+  action_id         Int?
+  current_status_id Int?
+  next_status_id    Int?
+  approved_by       Int?
+  approved_date     DateTime?      @default(now()) @db.DateTime(0)
+  action_plan       action_plan?   @relation(fields: [action_plan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_1")
+  actions           actions?       @relation(fields: [action_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_2")
+  current_status    custom_status? @relation("approval_flows_current_status_idTocustom_status", fields: [current_status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_3")
+  next_status       custom_status? @relation("approval_flows_next_status_idTocustom_status", fields: [next_status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_4")
+  users             users?         @relation(fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "approval_flows_ibfk_5")
 
   @@index([action_id], map: "action_id")
   @@index([action_plan_id], map: "action_plan_id")
@@ -532,6 +534,83 @@ model action_plan_status_behavior_progress {
   @@index([behavior_id], map: "behavior_id")
 }
 
+model action_plan_document {
+  id                    Int                @id @default(autoincrement())
+  action_plan_target_id Int
+  document_id           Int
+  document_type         String             @db.VarChar(150)
+  created_at            DateTime?          @default(now()) @db.DateTime(0)
+  action_plan_target    action_plan_target @relation(fields: [action_plan_target_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "action_plan_document_ibfk_1")
+  documents             documents          @relation(fields: [document_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "action_plan_document_ibfk_2")
+
+  @@index([action_plan_target_id], map: "action_plan_target_id")
+  @@index([document_id], map: "document_id")
+}
+
+model documents {
+  id                          Int                           @id @default(autoincrement())
+  fileName                    String                        @db.VarChar(255)
+  extension                   String                        @db.VarChar(10)
+  size                        Int
+  base64                      String                        @db.Text
+  createdAt                   DateTime?                     @default(now()) @db.DateTime(0)
+  action_plan_document        action_plan_document[]
+  execution_history_documents execution_history_documents[]
+}
+
+model execution_history {
+  id                          Int                           @id @default(autoincrement())
+  execution_report_id         Int
+  date                        DateTime                      @db.Date
+  progress                    Decimal                       @db.Decimal(5, 2)
+  notes                       String?                       @db.Text
+  created_at                  DateTime?                     @default(now()) @db.DateTime(0)
+  execution_reports           execution_reports             @relation(fields: [execution_report_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "execution_history_ibfk_1")
+  execution_history_documents execution_history_documents[]
+
+  @@index([execution_report_id], map: "execution_report_id")
+}
+
+model execution_reports {
+  id                    Int                 @id @default(autoincrement())
+  action_plan_target_id Int
+  name                  String              @db.VarChar(255)
+  description           String?             @db.Text
+  start_date            DateTime            @db.Date
+  end_date              DateTime            @db.Date
+  current_progress      Decimal?            @default(0.00) @db.Decimal(5, 2)
+  expected_progress     Decimal?            @default(0.00) @db.Decimal(5, 2)
+  revaluation_reason    String?             @db.Text
+  created_at            DateTime?           @default(now()) @db.DateTime(0)
+  updated_at            DateTime?           @default(now()) @db.DateTime(0)
+  execution_history     execution_history[]
+  action_plan_target    action_plan_target  @relation(fields: [action_plan_target_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "execution_reports_ibfk_1")
+
+  @@index([action_plan_target_id], map: "action_plan_target_id")
+}
+
+model execution_history_documents {
+  id                   Int               @id @default(autoincrement())
+  execution_history_id Int
+  document_id          Int
+  is_validated         Boolean?          @default(false)
+  validated_at         DateTime?         @db.DateTime(0)
+  documents            documents         @relation(fields: [document_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ehd_document")
+  execution_history    execution_history @relation(fields: [execution_history_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ehd_execution_history")
+
+  @@index([document_id], map: "fk_ehd_document")
+  @@index([execution_history_id], map: "fk_ehd_execution_history")
+}
+
+model pre_launch_subscriptions {
+  id         Int      @id @default(autoincrement()) @db.UnsignedInt
+  name       String   @db.VarChar(100)
+  email      String   @db.VarChar(150)
+  origin     String?  @db.VarChar(100)
+  created_at DateTime @default(now()) @db.DateTime(0)
+  updated_at DateTime @default(now()) @db.DateTime(0)
+}
+
 enum audit_logs_action_type {
   INSERT
   UPDATE
@@ -605,16 +684,6 @@ enum activity_logs_action_type {
   dependency_unlocked
 }
 
-enum items_status {
-  pending
-  in_progress
-  completed
-  archived
-  cancel
-  blocked
-  unlocked
-}
-
 enum action_plan_target_target_type {
   item
   subitem
@@ -670,4 +739,14 @@ enum action_plan_status_behavior_type {
   ai_validate_invoice
   ai_pattern_recognition
   ai_schedule_risk
+}
+
+enum items_status {
+  blocked
+  unlocked
+  in_progress
+  completed
+  pending
+  archived
+  cancel
 }

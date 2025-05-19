@@ -6,5 +6,6 @@ import { PrismaService } from "src/prisma/prisma.service";
 @Module({
   providers: [ActionPlanStatusService, PrismaService],
   controllers: [ActionPlanStatusController],
+  exports: [ActionPlanStatusService],
 })
 export class ActionPlanStatusModule {}
