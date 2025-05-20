@@ -52,7 +52,7 @@ export const contact_admin_template = (payload: any) =>
                   </tr>
                   <tr>
                     <td style="font-weight:bold; padding:8px 0;">Mensagem:</td>
-                    <td style="white-space:pre-line;">${payload.mensagem}</td>
+                    <td style="white-space:pre-line;">${payload.message}</td>
                   </tr>
                 </table>
                 <p style="margin-top:30px; font-size:14px; color:#888888;">Este e-mail foi enviado automaticamente pelo sistema. Favor não responder.</p>
