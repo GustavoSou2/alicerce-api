@@ -1,6 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import * as sendGridMail from "@sendgrid/mail";
-import { contact_admin_template, contact_client_template } from "src/modules/mail/templates/contact.template";
+import {
+  contact_admin_template,
+  contact_client_template,
+} from "src/modules/mail/templates/contact.template";
 import {
   pre_launch_admin_template,
   pre_launch_template,
@@ -19,7 +22,7 @@ export class SendGridService {
 
     const confirmation_link =
       resource ?? `http://localhost:4200/register/confirm?token=${token}`;
-    
+
     const user_confirmation_template_html = user_confirmation_template({
       confirmation_link,
     });
@@ -50,7 +53,7 @@ export class SendGridService {
     };
 
     const msg_admin = {
-      to: process.env.SENDGRID_FROM_EMAIL,
+      to: "app.alicerce@gmail.com",
       from: process.env.SENDGRID_FROM_EMAIL!,
       subject: "Lista de pré-lançamento",
       text: "Novo cadastro na lista de pré-lançamento",
@@ -76,7 +79,7 @@ export class SendGridService {
     };
 
     const msg_admin = {
-      to: process.env.SENDGRID_FROM_EMAIL,
+      to: "app.alicerce@gmail.com",
       from: process.env.SENDGRID_FROM_EMAIL!,
       subject: "Lista de pré-lançamento",
       text: "Novo cadastro na lista de pré-lançamento",
