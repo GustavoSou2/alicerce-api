@@ -54,12 +54,6 @@ export class MailService {
           message: "Email já cadastrado",
         });
       } else {
-        await this.prisma.pre_launch_subscriptions.create({
-          data: {
-            ...payload,
-            origin: "landing_page",
-          },
-        });
         if (process.env.BASE == "production") {
           await this.prisma.pre_launch_subscriptions.create({
             data: {

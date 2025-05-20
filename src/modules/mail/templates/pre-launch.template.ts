@@ -40,7 +40,7 @@ export const pre_launch_admin_template = (
                 <table cellpadding="0" cellspacing="0" width="100%" style="margin-top:20px; font-size:15px;">
                   <tr>
                     <td style="font-weight:bold; padding:8px 0; width:150px;">Nome:</td>
-                    <td>${payload.nome}</td>
+                    <td>${payload.name}</td>
                   </tr>
                   <tr>
                     <td style="font-weight:bold; padding:8px 0;">E-mail:</td>
